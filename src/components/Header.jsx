@@ -15,6 +15,12 @@ import {
 
 import { AiOutlineClose } from 'react-icons/ai';
 import { app1 } from '@/firebase';
+import {
+    addDoc,
+    collection,
+    getFirestore,
+    serverTimestamp,
+  } from 'firebase/firestore';
 export default function Header() {
     const { data: session } = useSession();
     console.log(session)
@@ -22,7 +28,10 @@ export default function Header() {
     const [selectedFile, setSelectedFile] = useState(null);
     const [imageFileUrl, setImageFileUrl] = useState(null);
     const [imageFileUploading, setImageFileUploading] = useState(false);
+    const[postUploading,setPostUploading]=useState(false);
+    const[caption,setCaption]=useState('');
     const filePickerRef = useRef(null);
+    const db = getFirestore(app1);
     function addImageToPost(e) {
         const file = e.target.files[0];
         if (file) {
@@ -66,6 +75,19 @@ export default function Header() {
         );
     }
 
+    async function handleSubmit(){
+         setPostUploading(true);
+         const docRef = await addDoc(collection(db, 'posts'), {
+            username: session.user.username,
+            caption,
+            profileImg: session.user.image,
+            image: imageFileUrl,
+            timestamp: serverTimestamp(),
+          });
+          setPostUploading(false);
+          setIsOpen(false);
+    }
+
     return (
         <div className='shadow-sm border-b sticky top-0 bg-white z-30 p-3'>
             <div className='flex justify-between items-center max-w-6xl mx-auto'>
@@ -93,8 +115,13 @@ export default function Header() {
                         )}
                         <input type='file' hidden accept='image/*' ref={filePickerRef} onChange={addImageToPost} />
                     </div>
-                    <input type='text' placeholder='Please enter your caption' maxLength='150' className='border-none m-4 text-center  w-full focus:ring-0 outline-none' />
-                    <button disabled className='w-full bg-red-600 text-white p-2 shadow-lg rounded-lg hover:brightness-100 disabled:bg-gray-200 disabled:cursor-not-allowed disabled:hover:brightness-100'>
+                    <input type='text' placeholder='Please enter your caption' onChange={(e)=> setCaption(e.target.value)} maxLength='150' className='border-none m-4 text-center  w-full focus:ring-0 outline-none' />
+                    <button disabled={
+              !selectedFile ||
+              caption.trim() === '' ||
+              postUploading ||
+              imageFileUploading
+            }  onClick={handleSubmit}className='w-full bg-red-600 text-white p-2 shadow-lg rounded-lg hover:brightness-100 disabled:bg-gray-200 disabled:cursor-not-allowed disabled:hover:brightness-100'>
                         Upload Post
                     </button>
 
